@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prompt Yönetim Paneli</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  </head>
+  <body class="bg-gray-900 text-gray-100 font-sans min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+      <header class="mb-10 text-center">
+        <h1 class="text-4xl font-extrabold text-indigo-400 tracking-tight">
+          AI Prompt Library
+        </h1>
+        <p class="text-gray-400 mt-2">
+          Promptlarınızı saklayın, organize edin ve kullanım istatistiklerini
+          takip edin.
+        </p>
+      </header>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div
+          class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 h-fit"
+        >
+          <h2
+            class="text-xl font-bold mb-4 text-indigo-300 border-b border-gray-700 pb-2"
+          >
+            Yeni Prompt Ekle
+          </h2>
+          <form id="promptForm" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1"
+                >Başlık *</label
+              >
+              <input
+                type="text"
+                id="title"
+                required
+                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1"
+                >Kategori *</label
+              >
+              <input
+                type="text"
+                id="category"
+                placeholder="Örn: Kodlama, Yazarlık, Analiz"
+                required
+                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1"
+                >Açıklama</label
+              >
+              <input
+                type="text"
+                id="description"
+                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1"
+                >Prompt Metni *</label
+              >
+              <textarea
+                id="prompt_text"
+                rows="4"
+                required
+                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm"
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 shadow-md"
+            >
+              Kütüphaneye Ekle
+            </button>
+          </form>
+        </div>
+
+        <div class="lg:col-span-2">
+          <h2
+            class="text-xl font-bold mb-4 text-indigo-300 border-b border-gray-700 pb-2 flex justify-between items-center"
+          >
+            <span>Kayıtlı Promptlar</span>
+            <span
+              id="totalCount"
+              class="text-sm bg-gray-700 text-indigo-400 px-3 py-1 rounded-full"
+              >0 Prompt</span
+            >
+          </h2>
+
+          <div id="promptsContainer" class="space-y-4">
+            <div class="text-center py-10 text-gray-500">
+              Henüz hiç prompt eklenmemiş. Soldaki formu kullanarak ilk adımı
+              atın!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "/api/prompts";
+
+      // Sayfa yüklendiğinde mevcut promptları getir
+      document.addEventListener("DOMContentLoaded", fetchPrompts);
+
+      // FORM SUBMIT: Yeni Prompt Ekleme
+      document
+        .getElementById("promptForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault(); // Sayfanın yenilenmesini engelle
+
+          // Form verilerini alıyoruz
+          const promptData = {
+            title: document.getElementById("title").value,
+            category: document.getElementById("category").value,
+            description: document.getElementById("description").value,
+            prompt_text: document.getElementById("prompt_text").value,
+          };
+
+          try {
+            // Backend'e POST isteği atıyoruz
+            const response = await fetch(API_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(promptData),
+            });
+
+            if (response.ok) {
+              // Başarılıysa formu temizle ve listeyi yenile
+              document.getElementById("promptForm").reset();
+              fetchPrompts();
+            } else {
+              const errorData = await response.json();
+              alert(`Hata: ${errorData.error}`);
+            }
+          } catch (error) {
+            console.error("İstek hatası:", error);
+            alert("Prompt eklenirken bir hata oluştu.");
+          }
+        });
+
+      // GET REQUEST: Tüm Promptları Listeleme
+      async function fetchPrompts() {
+        try {
+          const response = await fetch(API_URL);
+          const prompts = await response.json();
+
+          const container = document.getElementById("promptsContainer");
+          document.getElementById("totalCount").innerText =
+            `${prompts.length} Prompt`;
+
+          if (prompts.length === 0) {
+            container.innerHTML = `<div class="text-center py-10 text-gray-500">Henüz hiç prompt eklenmemiş. Soldaki formu kullanarak ilk adımı atın!</div>`;
+            return;
+          }
+
+          // Listeyi temizle ve yeniden inşa et (Render)
+          container.innerHTML = "";
+          prompts.forEach((prompt) => {
+            const card = document.createElement("div");
+            card.className =
+              "bg-gray-800 p-5 rounded-xl shadow-md border border-gray-700 hover:border-indigo-500 transition duration-200";
+            card.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">${prompt.title}</h3>
+                                <p class="text-xs text-gray-400 mt-0.5">${prompt.description || "Açıklama yok"}</p>
+                            </div>
+                            <span class="text-xs font-semibold px-2 py-1 bg-indigo-950 text-indigo-300 rounded-md border border-indigo-800">
+                                ${prompt.category}
+                            </span>
+                        </div>
+                        <div class="bg-gray-900 p-3 rounded-lg my-3 font-mono text-sm text-gray-300 whitespace-pre-wrap border border-gray-700">
+                            ${prompt.prompt_text}
+                        </div>
+                        <div class="flex justify-between items-center mt-4 pt-3 border-t border-gray-700 text-sm">
+                            <span class="text-gray-400">
+                                Kullanım: <strong id="count-${prompt.id}" class="text-indigo-400">${prompt.usage_count}</strong>
+                            </span>
+                            <button onclick="usePrompt(${prompt.id})" class="bg-gray-700 hover:bg-indigo-600 text-white font-medium py-1 px-3 rounded-md transition duration-150 text-xs flex items-center gap-1">
+                                ⚡ Kullan ve Sayacı Artır
+                            </button>
+                        </div>
+                    `;
+            container.appendChild(card);
+          });
+        } catch (error) {
+          console.error("Promptlar yüklenirken hata:", error);
+        }
+      }
+
+      // GET REQUEST (Action): Prompt Kullanımı ve Sayaç Güncelleme
+      async function usePrompt(id) {
+        try {
+          // Sizin yazdığınız /api/prompts/<id>/use endpoint'ine istek atıyoruz
+          const response = await fetch(`${API_URL}/${id}/use`);
+          if (response.ok) {
+            const updatedPrompt = await response.json();
+
+            // DOM'u tamamen yenilemek yerine sadece ilgili sayacı güncelleyerek performans kazanıyoruz
+            document.getElementById(`count-${id}`).innerText =
+              updatedPrompt.usage_count;
+
+            // Kullanıcı deneyimi için prompt metnini panoya kopyalayalım
+            navigator.clipboard.writeText(updatedPrompt.prompt_text);
+
+            // Küçük bir görsel geri bildirim (isteğe bağlı geliştirilebilir)
+            console.log(
+              `${updatedPrompt.title} kopyalandı ve sayacı artırıldı.`,
+            );
+          }
+        } catch (error) {
+          console.error("Sayaç güncellenirken hata:", error);
+        }
+      }
+    </script>
+  </body>
+</html>
