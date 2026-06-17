@@ -43,7 +43,7 @@ Follow these steps to run the Digital Wallet platform locally:
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/onurcanbircan/flask-digital-wallet.git](https://github.com/onurcanbircan/flask-digital-wallet.git)
+   git clone [https://github.com/onurcanbircan/ai-prompt-library.git](https://github.com/onurcanbircan/ai-prompt-library.git)
    cd flask-digital-wallet
    ```
 
